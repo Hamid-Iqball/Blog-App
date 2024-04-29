@@ -7,8 +7,12 @@ function createRandomPost() {
   };
 }
 
+//Context api
 const PostContext = createContext();
+
+//post provider context
 function PostProvider({ children }) {
+  //states
   const [posts, setPosts] = useState(() =>
     Array.from({ length: 30 }, () => createRandomPost())
   );
@@ -42,7 +46,6 @@ function PostProvider({ children }) {
         setSearchQuery,
       }}
     >
-      {" "}
       {children}
     </PostContext.Provider>
   );

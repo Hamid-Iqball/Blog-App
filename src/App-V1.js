@@ -7,8 +7,9 @@ function createRandomPost() {
     body: faker.hacker.phrase(),
   };
 }
-
+//Context api
 const PostContext = createContext();
+
 function App() {
   //States
   const [posts, setPosts] = useState(() =>
