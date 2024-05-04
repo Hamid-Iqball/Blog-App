@@ -1,6 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { faker } from "@faker-js/faker";
-import { PostProvider, PostContext } from "./PostContext";
+import { PostProvider, usePost } from "./PostProvider";
+import Test from "./Test";
 
 function createRandomPost() {
   return {
@@ -9,11 +10,11 @@ function createRandomPost() {
   };
 }
 
-function App() {
-  //States
-  const [isFakeDark, setIsFakeDark] = useState(false);
+// 1) create the context
 
+function App() {
   // Whenever `isFakeDark` changes, we toggle the `fake-dark-mode` class on the HTML element (see in "Elements" dev tool).
+  const [isFakeDark, setIsFakeDark] = useState(false);
   useEffect(
     function () {
       document.documentElement.classList.toggle("fake-dark-mode");
@@ -22,34 +23,33 @@ function App() {
   );
 
   return (
-    <section>
-      <button
-        onClick={() => setIsFakeDark((isFakeDark) => !isFakeDark)}
-        className="btn-fake-dark-mode"
-      >
-        {isFakeDark ? "☀️" : "🌙"}
-      </button>
+    <PostProvider>
+      <section>
+        <button
+          onClick={() => setIsFakeDark((isFakeDark) => !isFakeDark)}
+          className="btn-fake-dark-mode"
+        >
+          {isFakeDark ? "☀️" : "🌙"}
+        </button>
 
-      <PostProvider>
         <Header />
         <Main />
         <Archive />
         <Footer />
-      </PostProvider>
-    </section>
+      </section>
+    </PostProvider>
   );
 }
 
 function Header() {
-  const { onClearPosts } = useContext(PostContext);
-
+  const { posts, onClearPosts } = usePost();
   return (
     <header>
       <h1>
         <span>⚛️</span>The Atomic Blog
       </h1>
       <div>
-        <Results />
+        <Results posts={posts} />
         <SearchPosts />
         <button onClick={onClearPosts}>Clear posts</button>
       </div>
@@ -58,7 +58,7 @@ function Header() {
 }
 
 function SearchPosts() {
-  const { searchQuery, setSearchQuery } = useContext(PostContext);
+  const { searchQuery, setSearchQuery } = usePost();
   return (
     <input
       value={searchQuery}
@@ -69,11 +69,12 @@ function SearchPosts() {
 }
 
 function Results() {
-  const { posts } = useContext(PostContext);
+  const { posts } = usePost();
   return <p>🚀 {posts.length} atomic posts found</p>;
 }
 
 function Main() {
+  const { onAddPost, posts } = usePost();
   return (
     <main>
       <FormAddPost />
@@ -83,15 +84,16 @@ function Main() {
 }
 
 function Posts() {
+  const { posts } = usePost();
   return (
     <section>
-      <List />
+      <List posts={posts} />
     </section>
   );
 }
 
 function FormAddPost() {
-  const { onAddPost } = useContext(PostContext);
+  const { onAddPost } = usePost();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
@@ -121,30 +123,27 @@ function FormAddPost() {
 }
 
 function List() {
-  const { posts } = useContext(PostContext);
+  const { posts } = usePost();
   return (
-    <ul>
-      {posts.map((post, i) => (
-        <li key={i}>
-          <h3>{post.title}</h3>
-          <p>{post.body}</p>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul>
+        {posts.map((post, i) => (
+          <li key={i}>
+            <h3>{post.title}</h3>
+            <p>{post.body}</p>
+          </li>
+        ))}
+      </ul>
+      {/* <Test /> */}
+    </>
   );
 }
 
-function Archive() {
-  const { onAddPost } = useContext(PostContext);
-  // Here we don't need the setter function. We're only using state to store these posts
-  // because the callback function passed into useState (which generates the posts) is only
-  //
-  // called once, on the initial render. So we use this trick as an optimization technique,
-  // because if we just used a regular variable, these posts would be re-created on every render.
-  //  We could also move the posts outside the components, but I wanted to show you this trick 😉
+function Archive({ onAddPost }) {
+  // Here we don't need the setter function. We're only using state to store these posts because the callback function passed into useState (which generates the posts) is only called once, on the initial render. So we use this trick as an optimization technique, because if we just used a regular variable, these posts would be re-created on every render. We could also move the posts outside the components, but I wanted to show you this trick 😉
   const [posts] = useState(() =>
     // 💥 WARNING: This might make your computer slow! Try a smaller `length` first
-    Array.from({ length: 100 }, () => createRandomPost())
+    Array.from({ length: 10000 }, () => createRandomPost())
   );
 
   const [showArchive, setShowArchive] = useState(false);

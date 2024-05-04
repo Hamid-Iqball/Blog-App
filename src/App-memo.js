@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  memo,
+  useMemo,
+  useCallback,
+} from "react";
 import { faker } from "@faker-js/faker";
 
 function createRandomPost() {
@@ -7,11 +15,11 @@ function createRandomPost() {
     body: faker.hacker.phrase(),
   };
 }
-//Context api
+
+// 1) create the context
 const PostContext = createContext();
 
 function App() {
-  //States
   const [posts, setPosts] = useState(() =>
     Array.from({ length: 30 }, () => createRandomPost())
   );
@@ -28,9 +36,9 @@ function App() {
         )
       : posts;
 
-  function handleAddPost(post) {
+  const handleAddPost = useCallback(function handleAddPost(post) {
     setPosts((posts) => [post, ...posts]);
-  }
+  }, []);
 
   function handleClearPosts() {
     setPosts([]);
@@ -44,14 +52,19 @@ function App() {
     [isFakeDark]
   );
 
+  const archiveOption = useMemo(() => {
+    return {
+      show: false,
+      title: `POST archive in addition to ${posts.length} main posts`,
+    };
+  }, [posts.length]);
   return (
     <PostContext.Provider
       value={{
         posts: searchedPosts,
-        onAddPost: handleAddPost,
         onClearPosts: handleClearPosts,
-        searchQuery,
         setSearchQuery,
+        onAddPost: handleAddPost,
       }}
     >
       <section>
@@ -64,7 +77,7 @@ function App() {
 
         <Header />
         <Main />
-        <Archive />
+        <Archive archiveOption={archiveOption} onAddPost={handleAddPost} />
         <Footer />
       </section>
     </PostContext.Provider>
@@ -72,15 +85,14 @@ function App() {
 }
 
 function Header() {
-  const { onClearPosts } = useContext(PostContext);
-
+  const { posts, onClearPosts } = useContext(PostContext);
   return (
     <header>
       <h1>
         <span>⚛️</span>The Atomic Blog
       </h1>
       <div>
-        <Results />
+        <Results posts={posts} />
         <SearchPosts />
         <button onClick={onClearPosts}>Clear posts</button>
       </div>
@@ -105,18 +117,20 @@ function Results() {
 }
 
 function Main() {
+  const { onAddPost, posts } = useContext(PostContext);
   return (
     <main>
-      <FormAddPost />
-      <Posts />
+      <FormAddPost onAddPost={onAddPost} />
+      <Posts posts={posts} />
     </main>
   );
 }
 
 function Posts() {
+  const { posts } = useContext(PostContext);
   return (
     <section>
-      <List />
+      <List posts={posts} />
     </section>
   );
 }
@@ -165,24 +179,18 @@ function List() {
   );
 }
 
-function Archive() {
-  const { onAddPost } = useContext(PostContext);
-  // Here we don't need the setter function. We're only using state to store these posts
-  // because the callback function passed into useState (which generates the posts) is only
-  //
-  // called once, on the initial render. So we use this trick as an optimization technique,
-  // because if we just used a regular variable, these posts would be re-created on every render.
-  //  We could also move the posts outside the components, but I wanted to show you this trick 😉
+const Archive = memo(function Archive({ archiveOption, onAddPost }) {
+  // Here we don't need the setter function. We're only using state to store these posts because the callback function passed into useState (which generates the posts) is only called once, on the initial render. So we use this trick as an optimization technique, because if we just used a regular variable, these posts would be re-created on every render. We could also move the posts outside the components, but I wanted to show you this trick 😉
   const [posts] = useState(() =>
     // 💥 WARNING: This might make your computer slow! Try a smaller `length` first
-    Array.from({ length: 100 }, () => createRandomPost())
+    Array.from({ length: 10000 }, () => createRandomPost())
   );
 
-  const [showArchive, setShowArchive] = useState(false);
+  const [showArchive, setShowArchive] = useState(archiveOption.show);
 
   return (
     <aside>
-      <h2>Post archive</h2>
+      <h2>{archiveOption.title}</h2>
       <button onClick={() => setShowArchive((s) => !s)}>
         {showArchive ? "Hide archive posts" : "Show archive posts"}
       </button>
@@ -201,7 +209,7 @@ function Archive() {
       )}
     </aside>
   );
-}
+});
 
 function Footer() {
   return <footer>&copy; by The Atomic Blog ✌️</footer>;

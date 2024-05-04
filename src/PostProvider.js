@@ -1,16 +1,17 @@
-import { createContext, useState } from "react";
+import { children, createContext, useContext, useMemo, useState } from "react";
 import { faker } from "@faker-js/faker";
+
 function createRandomPost() {
   return {
     title: `${faker.hacker.adjective()} ${faker.hacker.noun()}`,
     body: faker.hacker.phrase(),
   };
 }
+//CreateContext , function
 
-//Context api
 const PostContext = createContext();
 
-//post provider context
+//Custom hook
 function PostProvider({ children }) {
   //states
   const [posts, setPosts] = useState(() =>
@@ -28,6 +29,7 @@ function PostProvider({ children }) {
         )
       : posts;
 
+  //functions
   function handleAddPost(post) {
     setPosts((posts) => [post, ...posts]);
   }
@@ -36,19 +38,24 @@ function PostProvider({ children }) {
     setPosts([]);
   }
 
-  return (
-    <PostContext.Provider
-      value={{
-        posts: searchedPosts,
-        onAddPost: handleAddPost,
-        onClearPosts: handleClearPosts,
-        searchQuery,
-        setSearchQuery,
-      }}
-    >
-      {children}
-    </PostContext.Provider>
-  );
+  const value = useMemo(() => {
+    return {
+      posts: searchedPosts,
+
+      onClearPosts: handleClearPosts,
+      setSearchQuery,
+      searchQuery,
+      onAddPost: handleAddPost,
+    };
+  }, [searchedPosts, searchQuery]);
+
+  //jsx
+  return <PostContext.Provider value={value}>{children}</PostContext.Provider>;
 }
 
-export { PostProvider, PostContext };
+function usePost() {
+  const context = useContext(PostContext);
+  return context;
+}
+
+export { PostProvider, PostContext, usePost };
